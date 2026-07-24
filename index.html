@@ -15,7 +15,15 @@ body{overflow:hidden;font-family:'Segoe UI',Tahoma,sans-serif;background:#0a0a1a
 .tab-btn.active{background:rgba(0,212,255,0.2);color:#00d4ff;border-color:#00d4ff}
 #ar-btn{padding:6px 16px;background:rgba(0,255,136,0.15);border:1px solid #00ff88;color:#00ff88;border-radius:6px;cursor:pointer;font-size:12px;transition:all .3s;font-weight:700}
 #ar-btn:hover{background:rgba(0,255,136,0.3)}
-#ar-btn.unsupported{opacity:0.4;cursor:not-allowed;border-color:#555;color:#555}
+#ar-btn.unsupported{border-color:#ffaa00;color:#ffaa00;background:rgba(255,170,0,0.15)}
+#ar-modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:300;align-items:center;justify-content:center}
+#ar-modal.show{display:flex}
+#ar-modal-box{background:#16213e;border:2px solid #00d4ff;border-radius:16px;padding:30px;text-align:center;max-width:380px;width:90%}
+#ar-modal-box h2{color:#00d4ff;margin-bottom:10px;font-size:18px}
+#ar-modal-box p{color:#aaa;font-size:13px;margin-bottom:16px;line-height:1.5}
+#ar-modal-box img{border-radius:8px;margin:10px 0;background:#fff;padding:8px}
+#ar-modal-url{background:#0a0a1a;border:1px solid #302b63;border-radius:6px;padding:8px 12px;color:#00ff88;font-size:11px;word-break:break-all;margin:10px 0;display:block;font-family:monospace}
+#ar-modal-box .ar-close{margin-top:16px;padding:8px 24px;background:#0f3460;border:1px solid #00d4ff;color:#00d4ff;border-radius:8px;cursor:pointer;font-size:13px}
 #left-panel{position:fixed;top:58px;left:10px;width:210px;background:rgba(15,12,41,0.95);border-radius:10px;border:1px solid #302b63;padding:14px;z-index:100;max-height:calc(100vh - 68px);overflow-y:auto}
 .ptitle{color:#00d4ff;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;border-bottom:1px solid #302b63;padding-bottom:5px}
 .gate-btn{display:block;width:100%;padding:8px 10px;margin:4px 0;background:#16213e;border:1px solid #302b63;color:#ccc;border-radius:6px;cursor:pointer;font-size:12px;transition:all .3s;text-align:left}
@@ -195,6 +203,16 @@ body{overflow:hidden;font-family:'Segoe UI',Tahoma,sans-serif;background:#0a0a1a
   </div>
 </div>
 
+<div id="ar-modal">
+  <div id="ar-modal-box">
+    <h2>View in AR</h2>
+    <p>Open this link on your <strong>Android phone</strong> (Chrome) or <strong>iPhone</strong> (Safari) to view the lab in Augmented Reality.</p>
+    <img id="ar-qr" width="200" height="200" alt="QR Code">
+    <a class="ar-modal-url" id="ar-url-display" href="#" target="_blank"></a>
+    <p style="font-size:11px;color:#666;margin-top:8px">Requires a device with AR support (ARCore / ARKit)</p>
+    <button class="ar-close" onclick="document.getElementById('ar-modal').classList.remove('show')">Close</button>
+  </div>
+</div>
 <canvas id="canvas"></canvas>
 
 <script type="importmap">
@@ -662,11 +680,22 @@ async function initAR(){
     }
   }catch(e){}
   const arBtn=document.getElementById('ar-btn');
+  arBtn.textContent='View in AR';
+  arBtn.classList.remove('unsupported');
   if(supported){
-    arBtn.textContent='View in AR';
-    arBtn.classList.remove('unsupported');
     arBtn.onclick=startAR;
+  }else{
+    arBtn.classList.add('unsupported');
+    arBtn.onclick=showARModal;
   }
+}
+
+function showARModal(){
+  const url=window.location.href;
+  document.getElementById('ar-url-display').textContent=url;
+  document.getElementById('ar-url-display').href=url;
+  document.getElementById('ar-qr').src='https://api.qrserver.com/v1/create-qr-code/?size=200x200&data='+encodeURIComponent(url);
+  document.getElementById('ar-modal').classList.add('show');
 }
 
 async function startAR(){
