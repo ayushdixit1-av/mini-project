@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Digital Logic Gate Lab - Three.js</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{overflow:hidden;font-family:'Segoe UI',Tahoma,sans-serif;background:#0a0a1a}
+#canvas{display:block;width:100vw;height:100vh}
+#title-bar{position:fixed;top:0;left:0;right:0;height:48px;background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);display:flex;align-items:center;justify-content:center;z-index:100;border-bottom:2px solid #00d4ff;gap:20px}
+#title-bar h1{color:#00d4ff;font-size:16px;letter-spacing:2px;text-transform:uppercase}
+.tab-bar{display:flex;gap:4px}
+.tab-btn{padding:6px 16px;background:rgba(0,212,255,0.1);border:1px solid #302b63;color:#888;border-radius:6px;cursor:pointer;font-size:12px;transition:all .3s}
+.tab-btn.active{background:rgba(0,212,255,0.2);color:#00d4ff;border-color:#00d4ff}
+#left-panel{position:fixed;top:58px;left:10px;width:210px;background:rgba(15,12,41,0.95);border-radius:10px;border:1px solid #302b63;padding:14px;z-index:100;max-height:calc(100vh - 68px);overflow-y:auto}
+.ptitle{color:#00d4ff;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;border-bottom:1px solid #302b63;padding-bottom:5px}
+.gate-btn{display:block;width:100%;padding:8px 10px;margin:4px 0;background:#16213e;border:1px solid #302b63;color:#ccc;border-radius:6px;cursor:pointer;font-size:12px;transition:all .3s;text-align:left}
+.gate-btn:hover{background:#1a1a4e;border-color:#00d4ff}
+.gate-btn.active{background:#0f3460;border-color:#00d4ff;color:#00d4ff;box-shadow:0 0 10px rgba(0,212,255,0.3)}
+.input-group{margin:12px 0 8px}
+.input-row{display:flex;align-items:center;justify-content:space-between;margin:7px 0}
+.input-label{color:#e0e0e0;font-size:14px;font-weight:700}
+.tsw{width:48px;height:24px;background:#16213e;border-radius:12px;cursor:pointer;position:relative;border:1px solid #302b63;transition:all .3s}
+.tsw.on{background:#0f3460;border-color:#00d4ff}
+.tsw::after{content:'';position:absolute;width:20px;height:20px;background:#555;border-radius:50%;top:1px;left:1px;transition:all .3s}
+.tsw.on::after{left:25px;background:#00d4ff;box-shadow:0 0 10px #00d4ff}
+.iv{color:#00d4ff;font-size:15px;font-weight:700;width:18px;text-align:center}
+.led-box{margin-top:10px;padding:10px;background:#0a0a1a;border-radius:6px;border:1px solid #302b63;text-align:center}
+.led-box .ol{color:#666;font-size:10px;text-transform:uppercase;letter-spacing:1px}
+.led-box .ov{font-size:28px;font-weight:700;margin:4px 0}
+.led-box .ov.high{color:#00ff88}
+.led-box .ov.low{color:#ff4444}
+.led-dot{display:inline-block;width:18px;height:18px;border-radius:50%;background:#333;border:2px solid #555;vertical-align:middle;margin-left:6px}
+.led-dot.on{background:#00ff00;box-shadow:0 0 12px #00ff00,0 0 24px #00ff00;border-color:#00ff00}
+.led-dot.off{background:#440000;border-color:#660000}
+#right-panel{position:fixed;top:58px;right:10px;width:270px;background:rgba(15,12,41,0.95);border-radius:10px;border:1px solid #302b63;padding:14px;z-index:100;max-height:calc(100vh - 68px);overflow-y:auto}
+.tt{width:100%;border-collapse:collapse;margin-top:6px}
+.tt th{background:#16213e;color:#00d4ff;padding:5px 3px;font-size:11px;border:1px solid #302b63}
+.tt td{padding:5px 3px;text-align:center;color:#aaa;font-size:11px;border:1px solid #302b63;background:rgba(22,33,62,0.4)}
+.tt tr.active{background:rgba(0,212,255,0.2)}
+.tt tr.active td{color:#00d4ff;font-weight:700}
+.tt td.out-high{color:#00ff88;font-weight:700}
+.tt td.out-low{color:#ff4444}
+#bottom-left{position:fixed;bottom:10px;left:10px;width:210px;background:rgba(15,12,41,0.95);border-radius:10px;border:1px solid #302b63;padding:12px;z-index:100}
+.id{color:#999;font-size:11px;margin:2px 0}.id span{color:#00d4ff}
+#bottom-right{position:fixed;bottom:10px;right:10px;width:270px;background:rgba(15,12,41,0.95);border-radius:10px;border:1px solid #302b63;padding:12px;z-index:100;max-height:180px;overflow-y:auto}
+.tt2{color:#aaa;font-size:11px;line-height:1.5}.tt2 strong{color:#00d4ff}
+.sop-pos-toggle{display:flex;gap:4px;margin:8px 0}
+.sop-pos-toggle button{flex:1;padding:5px;background:#16213e;border:1px solid #302b63;color:#888;border-radius:4px;cursor:pointer;font-size:11px;transition:all .3s}
+.sop-pos-toggle button.active{background:#0f3460;color:#00d4ff;border-color:#00d4ff}
+#exp2-canvas{display:none;width:100%;border-radius:6px;background:#0a0a1a;border:1px solid #302b63;margin:8px 0}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:#16213e}::-webkit-scrollbar-thumb{background:#302b63;border-radius:3px}
+#exp1-content,#exp2-content{display:none}
+#exp1-content.active,#exp2-content.active{display:block}
+.ni{color:#ff6b6b;font-size:10px;font-style:italic;margin-top:4px}
+</style>
+</head>
+<body>
+<div id="title-bar">
+  <h1>Digital Logic Gate Lab</h1>
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab(1)">Exp 1: Logic Gates</button>
+    <button class="tab-btn" onclick="switchTab(2)">Exp 2: SOP / POS</button>
+  </div>
+</div>
+
+<div id="left-panel">
+  <div id="exp1-content" class="active">
+    <div class="ptitle">Select Gate / IC</div>
+    <button class="gate-btn active" onclick="selectGate('AND')">AND Gate (7408)</button>
+    <button class="gate-btn" onclick="selectGate('OR')">OR Gate (7432)</button>
+    <button class="gate-btn" onclick="selectGate('NAND')">NAND Gate (7400)</button>
+    <button class="gate-btn" onclick="selectGate('NOR')">NOR Gate (7402)</button>
+    <button class="gate-btn" onclick="selectGate('NOT')">NOT Gate (7404)</button>
+    <button class="gate-btn" onclick="selectGate('XOR')">XOR Gate (7486)</button>
+    <div class="input-group">
+      <div class="ptitle" style="margin-top:10px">Inputs</div>
+      <div class="input-row">
+        <span class="input-label">A</span>
+        <div class="tsw" id="swA" onclick="toggleA()"></div>
+        <span class="iv" id="vA">0</span>
+      </div>
+      <div class="input-row" id="rowB">
+        <span class="input-label">B</span>
+        <div class="tsw" id="swB" onclick="toggleB()"></div>
+        <span class="iv" id="vB">0</span>
+      </div>
+      <div class="ni" id="notNote" style="display:none">NOT gate: single input</div>
+    </div>
+    <div class="led-box">
+      <div class="ol">Output (F)</div>
+      <div class="ov" id="oDisp">0 <span class="led-dot off" id="led3d"></span></div>
+    </div>
+  </div>
+  <div id="exp2-content">
+    <div class="ptitle">Exp 2: F(X,Y,Z) = Σ(1,2,3,5)</div>
+    <div class="sop-pos-toggle">
+      <button class="active" id="sopBtn" onclick="setExp2Mode('SOP')">SOP</button>
+      <button id="posBtn" onclick="setExp2Mode('POS')">POS</button>
+    </div>
+    <div class="input-group">
+      <div class="ptitle" style="margin-top:8px">Inputs</div>
+      <div class="input-row">
+        <span class="input-label">X</span>
+        <div class="tsw" id="swX" onclick="toggleX()"></div>
+        <span class="iv" id="vX">0</span>
+      </div>
+      <div class="input-row">
+        <span class="input-label">Y</span>
+        <div class="tsw" id="swY" onclick="toggleY()"></div>
+        <span class="iv" id="vY">0</span>
+      </div>
+      <div class="input-row">
+        <span class="input-label">Z</span>
+        <div class="tsw" id="swZ" onclick="toggleZ()"></div>
+        <span class="iv" id="vZ">0</span>
+      </div>
+    </div>
+    <div class="led-box">
+      <div class="ol">Output F</div>
+      <div class="ov" id="oDisp2">0 <span class="led-dot off" id="ledDot2"></span></div>
+    </div>
+    <canvas id="exp2-canvas" width="180" height="140"></canvas>
+  </div>
+</div>
+
+<div id="right-panel">
+  <div id="tt1-wrap">
+    <div class="ptitle">Truth Table - <span id="gName">AND</span></div>
+    <table class="tt" id="tt1"></table>
+  </div>
+  <div id="tt2-wrap" style="display:none">
+    <div class="ptitle">Truth Table - F(X,Y,Z)</div>
+    <table class="tt" id="tt2"></table>
+  </div>
+</div>
+
+<div id="bottom-left">
+  <div class="ptitle">IC Details</div>
+  <div class="id">IC: <span id="icNum">7408</span></div>
+  <div class="id">Gate: <span id="icGate">AND</span></div>
+  <div class="id">Pins: <span>14 (Vcc:14, GND:7)</span></div>
+  <div class="id">Pin A: <span>Pin 1</span></div>
+  <div class="id">Pin B: <span>Pin 2</span></div>
+  <div class="id">Output: <span>Pin 3</span></div>
+  <div class="id">Supply: <span>+5V DC</span></div>
+</div>
+
+<div id="bottom-right">
+  <div class="ptitle">Theory</div>
+  <div class="tt2" id="theoryTxt">
+    <strong>AND Gate (7408):</strong> Output HIGH when ALL inputs HIGH. F = A · B<br>
+    Used in multiplication operations and conditional logic circuits.
+  </div>
+</div>
+
+<canvas id="canvas"></canvas>
+
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+import*as THREE from'three';
+import{OrbitControls}from'three/addons/controls/OrbitControls.js';
+
+const GATES={
+  AND:{ic:'7408',fn:(a,b)=>a&b,inputs:2,
+    truth:[[0,0,0],[0,1,0],[1,0,0],[1,1,1]],
+    theory:'<strong>AND Gate (7408):</strong> Output HIGH only when ALL inputs HIGH. F = A · B<br>Used in multiplication and conditional logic.'},
+  OR:{ic:'7432',fn:(a,b)=>a|b,inputs:2,
+    truth:[[0,0,0],[0,1,1],[1,0,1],[1,1,1]],
+    theory:'<strong>OR Gate (7432):</strong> Output HIGH when ANY input is HIGH. F = A + B<br>Used in addition and decision circuits.'},
+  NAND:{ic:'7400',fn:(a,b)=>(a&b)^1,inputs:2,
+    truth:[[0,0,1],[0,1,1],[1,0,1],[1,1,0]],
+    theory:'<strong>NAND Gate (7400):</strong> Complement of AND. Output LOW only when all inputs HIGH. F = (A · B)\'<br>Universal gate - can build any logic function.'},
+  NOR:{ic:'7402',fn:(a,b)=>(a|b)^1,inputs:2,
+    truth:[[0,0,1],[0,1,0],[1,0,0],[1,1,0]],
+    theory:'<strong>NOR Gate (7402):</strong> Complement of OR. Output HIGH only when all inputs LOW. F = (A + B)\'<br>Universal gate - can build any logic function.'},
+  NOT:{ic:'7404',fn:(a)=>a^1,inputs:1,
+    truth:[[0,1],[1,0]],
+    theory:'<strong>NOT Gate (7404):</strong> Inverts the input. F = A\'<br>Single input gate. Used for complement operations.'},
+  XOR:{ic:'7486',fn:(a,b)=>a^b,inputs:2,
+    truth:[[0,0,0],[0,1,1],[1,0,1],[1,1,0]],
+    theory:'<strong>XOR Gate (7486):</strong> Output HIGH when inputs DIFFER. F = A⊕B = AB\' + A\'B<br>Used in adders and comparison circuits.'}
+};
+
+let currentGate='AND';
+let inpA=0,inpB=0;
+let exp2X=0,exp2Y=0,exp2Z=0,exp2Mode='SOP';
+let currentTab=1;
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x0a0a1a);
+scene.fog=new THREE.Fog(0x0a0a1a,600,1200);
+
+const camera=new THREE.PerspectiveCamera(50,window.innerWidth/window.innerHeight,1,2000);
+camera.position.set(0,280,380);
+
+const renderer=new THREE.WebGLRenderer({canvas:document.getElementById('canvas'),antialias:true});
+renderer.setSize(window.innerWidth,window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.2;
+
+const controls=new OrbitControls(camera,renderer.domElement);
+controls.enableDamping=true;
+controls.dampingFactor=0.08;
+controls.maxPolarAngle=Math.PI/2.1;
+controls.minDistance=150;
+controls.maxDistance=700;
+controls.target.set(0,0,20);
+
+scene.add(new THREE.AmbientLight(0x404060,0.6));
+const dLight=new THREE.DirectionalLight(0xffffff,0.8);
+dLight.position.set(100,300,200);
+dLight.castShadow=true;
+dLight.shadow.mapSize.set(1024,1024);
+scene.add(dLight);
+const fillLight=new THREE.DirectionalLight(0x8888ff,0.3);
+fillLight.position.set(-100,200,-100);
+scene.add(fillLight);
+
+const tableGeo=new THREE.BoxGeometry(600,20,400);
+const tableMat=new THREE.MeshStandardMaterial({color:0x5c3a1e,roughness:0.8,metalness:0.1});
+const table=new THREE.Mesh(tableGeo,tableMat);
+table.position.y=-10;
+table.receiveShadow=true;
+scene.add(table);
+
+const tableEdge=new THREE.Mesh(new THREE.BoxGeometry(604,4,404),new THREE.MeshStandardMaterial({color:0x3a2210}));
+tableEdge.position.y=-20;
+scene.add(tableEdge);
+
+function makeBreadboardTexture(){
+  const c=document.createElement('canvas');
+  c.width=512;c.height=256;
+  const ctx=c.getContext('2d');
+  ctx.fillStyle='#f0f0e8';ctx.fillRect(0,0,512,256);
+  ctx.strokeStyle='#ccc';ctx.lineWidth=1;
+  ctx.strokeRect(4,4,504,248);
+  ctx.fillStyle='#ddd';ctx.fillRect(4,122,504,12);
+  for(let col=0;col<30;col++){
+    for(let row=0;row<5;row++){
+      ctx.fillStyle='#222';
+      ctx.beginPath();ctx.arc(30+col*16,24+row*22,3,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(30+col*16,140+row*22,3,0,Math.PI*2);ctx.fill();
+    }
+  }
+  ctx.fillStyle='#cc0000';ctx.fillRect(8,8,496,2);
+  ctx.fillStyle='#0000cc';ctx.fillRect(8,246,496,2);
+  ctx.fillStyle='#cc0000';ctx.fillRect(8,124,496,2);
+  ctx.fillStyle='#0000cc';ctx.fillRect(8,132,496,2);
+  for(let col=0;col<30;col++){
+    ctx.fillStyle='#222';
+    ctx.beginPath();ctx.arc(30+col*16,14,2.5,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(30+col*16,242,2.5,0,Math.PI*2);ctx.fill();
+  }
+  const tex=new THREE.CanvasTexture(c);
+  tex.magFilter=THREE.NearestFilter;
+  return tex;
+}
+
+const bbGeo=new THREE.BoxGeometry(260,12,120);
+const bbMat=new THREE.MeshStandardMaterial({map:makeBreadboardTexture(),roughness:0.5});
+const breadboard=new THREE.Mesh(bbGeo,bbMat);
+breadboard.position.set(0,6,20);
+breadboard.castShadow=true;
+breadboard.receiveShadow=true;
+scene.add(breadboard);
+
+function createICChip(gate){
+  const g=new THREE.Group();
+  const body=new THREE.Mesh(
+    new THREE.BoxGeometry(50,8,18),
+    new THREE.MeshStandardMaterial({color:0x1a1a1a,roughness:0.3})
+  );
+  body.castShadow=true;
+  g.add(body);
+  const tc=document.createElement('canvas');
+  tc.width=128;tc.height=32;
+  const tctx=tc.getContext('2d');
+  tctx.fillStyle='#1a1a1a';tctx.fillRect(0,0,128,32);
+  tctx.fillStyle='#ddd';tctx.font='bold 18px monospace';
+  tctx.textAlign='center';tctx.textBaseline='middle';
+  tctx.fillText(gate.ic,64,16);
+  const label=new THREE.Mesh(
+    new THREE.PlaneGeometry(46,7),
+    new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(tc),transparent:true})
+  );
+  label.rotation.x=-Math.PI/2;
+  label.position.y=4.1;
+  g.add(label);
+  const notch=new THREE.Mesh(
+    new THREE.CylinderGeometry(2,2,18,16),
+    new THREE.MeshStandardMaterial({color:0x333333})
+  );
+  notch.rotation.x=Math.PI/2;
+  notch.position.set(-25,0,0);
+  g.add(notch);
+  const pinMat=new THREE.MeshStandardMaterial({color:0xcccccc,metalness:0.8,roughness:0.2});
+  for(let i=0;i<7;i++){
+    const pin=new THREE.Mesh(new THREE.BoxGeometry(2,1.5,4),pinMat);
+    pin.position.set(-21+i*7,-4.5,-11);
+    pin.castShadow=true;
+    g.add(pin);
+    const pin2=new THREE.Mesh(new THREE.BoxGeometry(2,1.5,4),pinMat);
+    pin2.position.set(-21+i*7,-4.5,11);
+    pin2.castShadow=true;
+    g.add(pin2);
+  }
+  return g;
+}
+
+let icChip=createICChip(GATES.AND);
+icChip.position.set(0,16,20);
+scene.add(icChip);
+
+function createSwitch3D(x,z,label){
+  const g=new THREE.Group();
+  const base=new THREE.Mesh(
+    new THREE.BoxGeometry(20,6,14),
+    new THREE.MeshStandardMaterial({color:0x222222,roughness:0.4})
+  );
+  base.position.y=3;
+  g.add(base);
+  const lever=new THREE.Mesh(
+    new THREE.BoxGeometry(4,12,6),
+    new THREE.MeshStandardMaterial({color:0x888888,metalness:0.6})
+  );
+  lever.position.set(0,9,0);
+  lever.userData={isSwitch:true,label:label,state:0};
+  g.add(lever);
+  g.position.set(x,6,z);
+  return{group:g,lever:lever};
+}
+
+const swA=createSwitch3D(-60,20,'A');
+scene.add(swA.group);
+const swB=createSwitch3D(-60,50,'B');
+scene.add(swB.group);
+
+function createLED3D(x,z){
+  const g=new THREE.Group();
+  const base=new THREE.Mesh(
+    new THREE.CylinderGeometry(4,4,3,16),
+    new THREE.MeshStandardMaterial({color:0x333333})
+  );
+  g.add(base);
+  const dome=new THREE.Mesh(
+    new THREE.SphereGeometry(5,16,16,0,Math.PI*2,0,Math.PI/2),
+    new THREE.MeshStandardMaterial({color:0x440000,roughness:0.2,emissive:0x000000})
+  );
+  dome.position.y=1.5;
+  g.add(dome);
+  let ptLight=new THREE.PointLight(0x00ff00,0,50);
+  ptLight.position.y=8;
+  g.add(ptLight);
+  g.position.set(x,6,z);
+  return{group:g,dome,ptLight};
+}
+
+const led1=createLED3D(70,35);
+scene.add(led1.group);
+const led2=createLED3D(90,35);
+scene.add(led2.group);
+
+function createWire(pts,color){
+  const curve=new THREE.CatmullRomCurve3(pts.map(p=>new THREE.Vector3(p[0],p[1],p[2])));
+  const geo=new THREE.TubeGeometry(curve,20,1.2,8,false);
+  const mat=new THREE.MeshStandardMaterial({color,roughness:0.5});
+  const m=new THREE.Mesh(geo,mat);
+  m.castShadow=true;
+  return m;
+}
+
+const wireColors=[0xff0000,0x0000ff,0x00aa00,0xff8800,0xaa00aa,0x00aaaa];
+const wires=[];
+
+function buildWires(){
+  wires.forEach(w=>scene.remove(w));
+  wires.length=0;
+  const c1=wireColors[0],c2=wireColors[1],c3=wireColors[2],c4=wireColors[3];
+  wires.push(createWire([[-60,14,20],[-45,20,20],[-21,14,20]],c1));
+  if(GATES[currentGate].inputs===2){
+    wires.push(createWire([[-60,14,50],[-45,20,50],[-14,14,50]],c2));
+    wires.push(createWire([[7,14,20],[20,20,20],[70,14,35]],c3));
+  }else{
+    wires.push(createWire([[7,14,20],[20,20,20],[70,14,35]],c3));
+  }
+  wires.push(createWire([[-140,10,80],[-100,10,80],[0,10,80]],c4));
+  wires.push(createWire([[0,10,80],[0,14,20]],0xff0000));
+  wires.push(createWire([[-140,10,90],[-100,10,90],[0,10,90]],0x0000ff));
+  wires.push(createWire([[0,10,90],[0,14,20]],0x0000ff));
+  const psGeo=new THREE.BoxGeometry(40,20,30);
+  const psMat=new THREE.MeshStandardMaterial({color:0x333344,roughness:0.3});
+  const ps=new THREE.Mesh(psGeo,psMat);
+  ps.position.set(-120,15,85);
+  ps.castShadow=true;
+  scene.add(ps);
+  wires.push(ps);
+  const led3dGeo=new THREE.BoxGeometry(15,10,10);
+  const led3dMat=new THREE.MeshStandardMaterial({color:0x223322,emissive:0x001100,roughness:0.3});
+  const led3dBox=new THREE.Mesh(led3dGeo,led3dMat);
+  led3dBox.position.set(85,15,35);
+  led3dBox.castShadow=true;
+  scene.add(led3dBox);
+  wires.push(led3dBox);
+}
+buildWires();
+
+const raycaster=new THREE.Raycaster();
+const mouse=new THREE.Vector2();
+const switchLevers=[swA.lever,swB.lever];
+
+renderer.domElement.addEventListener('click',(e)=>{
+  mouse.x=(e.clientX/window.innerWidth)*2-1;
+  mouse.y=-(e.clientY/window.innerHeight)*2+1;
+  raycaster.setFromCamera(mouse,camera);
+  const hits=raycaster.intersectObjects(switchLevers);
+  if(hits.length>0){
+    const lbl=hits[0].object.userData.label;
+    if(lbl==='A')toggleA();
+    else toggleB();
+  }
+});
+
+function updateSwitch3D(lever,state){
+  lever.rotation.z=state?Math.PI/6:-Math.PI/6;
+  lever.material.color.setHex(state?0x00cc66:0x888888);
+  lever.userData.state=state;
+}
+
+window.toggleA=function(){
+  inpA=inpA?0:1;
+  document.getElementById('swA').classList.toggle('on',inpA===1);
+  document.getElementById('vA').textContent=inpA;
+  updateSwitch3D(swA.lever,inpA);
+  updateOutput();
+};
+window.toggleB=function(){
+  inpB=inpB?0:1;
+  document.getElementById('swB').classList.toggle('on',inpB===1);
+  document.getElementById('vB').textContent=inpB;
+  updateSwitch3D(swB.lever,inpB);
+  updateOutput();
+};
+
+window.selectGate=function(g){
+  currentGate=g;
+  document.querySelectorAll('.gate-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelector(`.gate-btn[onclick="selectGate('${g}')"]`).classList.add('active');
+  const gate=GATES[g];
+  document.getElementById('gName').textContent=g;
+  document.getElementById('icNum').textContent=gate.ic;
+  document.getElementById('icGate').textContent=g;
+  document.getElementById('theoryTxt').innerHTML=gate.theory;
+  document.getElementById('rowB').style.display=gate.inputs===2?'flex':'none';
+  document.getElementById('notNote').style.display=gate.inputs===1?'block':'none';
+  scene.remove(icChip);
+  icChip=createICChip(gate);
+  icChip.position.set(0,16,20);
+  scene.add(icChip);
+  buildWires();
+  buildTruthTable();
+  updateOutput();
+};
+
+function buildTruthTable(){
+  const gate=GATES[currentGate];
+  let html='<tr>';
+  if(gate.inputs===2)html+='<th>S.N.</th><th>A</th><th>B</th><th>Output</th>';
+  else html+='<th>S.N.</th><th>A</th><th>Output</th>';
+  html+='</tr>';
+  gate.truth.forEach((row,i)=>{
+    const isActive=gate.inputs===2?(row[0]===inpA&&row[1]===inpB):(row[0]===inpA);
+    const outVal=gate.inputs===2?row[2]:row[1];
+    html+=`<tr class="${isActive?'active':''}"><td>${i+1}</td><td>${row[0]}</td>`;
+    if(gate.inputs===2)html+=`<td>${row[1]}</td>`;
+    html+=`<td class="${outVal?'out-high':'out-low'}">${outVal}</td></tr>`;
+  });
+  document.getElementById('tt1').innerHTML=html;
+}
+
+function updateOutput(){
+  const gate=GATES[currentGate];
+  const out=gate.inputs===2?gate.fn(inpA,inpB):gate.fn(inpA);
+  const oDisp=document.getElementById('oDisp');
+  oDisp.innerHTML=`${out} <span class="led-dot ${out?'on':'off'}" id="led3d"></span>`;
+  oDisp.querySelector('.ov')&&0;
+  document.querySelector('#left-panel .led-box .ov').className=`ov ${out?'high':'low'}`;
+  if(out){
+    led1.dome.material.color.setHex(0x00ff00);
+    led1.dome.material.emissive.setHex(0x00ff00);
+    led1.ptLight.intensity=2;
+    led1.ptLight.color.setHex(0x00ff00);
+  }else{
+    led1.dome.material.color.setHex(0x440000);
+    led1.dome.material.emissive.setHex(0x000000);
+    led1.ptLight.intensity=0;
+  }
+  led2.dome.material.color.setHex(out?0x00ff00:0x440000);
+  led2.dome.material.emissive.setHex(out?0x00ff00:0x000000);
+  led2.ptLight.intensity=out?1.5:0;
+  buildTruthTable();
+}
+
+function buildExp2TruthTable(){
+  const minterms=[1,2,3,5];
+  let html='<tr><th>X</th><th>Y</th><th>Z</th><th>F</th></tr>';
+  for(let i=0;i<8;i++){
+    const x=(i>>2)&1,y=(i>>1)&1,z=i&1;
+    const f=minterms.includes(i)?1:0;
+    const isActive=x===exp2X&&y===exp2Y&&z===exp2Z;
+    html+=`<tr class="${isActive?'active':''}"><td>${x}</td><td>${y}</td><td>${z}</td><td class="${f?'out-high':'out-low'}">${f}</td></tr>`;
+  }
+  document.getElementById('tt2').innerHTML=html;
+}
+
+window.toggleX=function(){
+  exp2X=exp2X?0:1;
+  document.getElementById('swX').classList.toggle('on',exp2X===1);
+  document.getElementById('vX').textContent=exp2X;
+  updateExp2();
+};
+window.toggleY=function(){
+  exp2Y=exp2Y?0:1;
+  document.getElementById('swY').classList.toggle('on',exp2Y===1);
+  document.getElementById('vY').textContent=exp2Y;
+  updateExp2();
+};
+window.toggleZ=function(){
+  exp2Z=exp2Z?0:1;
+  document.getElementById('swZ').classList.toggle('on',exp2Z===1);
+  document.getElementById('vZ').textContent=exp2Z;
+  updateExp2();
+};
+
+function computeExp2(x,y,z){
+  const minterms=[1,2,3,5];
+  const val=(x<<2)|(y<<1)|z;
+  return minterms.includes(val)?1:0;
+}
+
+function updateExp2(){
+  const f=computeExp2(exp2X,exp2Y,exp2Z);
+  document.querySelector('#exp2-content .led-box .ov').innerHTML=`${f} <span class="led-dot ${f?'on':'off'}"></span>`;
+  document.querySelector('#exp2-content .led-box .ov').className=`ov ${f?'high':'low'}`;
+  buildExp2TruthTable();
+  drawExp2Circuit();
+}
+
+function drawExp2Circuit(){
+  const cv=document.getElementById('exp2-canvas');
+  cv.style.display='block';
+  const ctx=cv.getContext('2d');
+  ctx.clearRect(0,0,cv.width,cv.height);
+  ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,cv.width,cv.height);
+  ctx.strokeStyle='#00d4ff';ctx.lineWidth=1;
+  ctx.strokeRect(1,1,cv.width-2,cv.height-2);
+  ctx.fillStyle='#00d4ff';ctx.font='bold 11px monospace';
+  ctx.textAlign='center';
+  ctx.fillText(exp2Mode==='SOP'?'SOP: F = Y\'Z + X\'Y':'POS: F = (Y+Z)(X\'+Y\')',cv.width/2,15);
+  const inps=[{l:'X',v:exp2X,y:40},{l:'Y',v:exp2Y,y:70},{l:'Z',v:exp2Z,y:100}];
+  inps.forEach(p=>{
+    ctx.fillStyle=p.v?'#00ff88':'#ff4444';
+    ctx.font='bold 12px monospace';
+    ctx.textAlign='left';
+    ctx.fillText(`${p.l}=${p.v}`,10,p.y+4);
+    ctx.fillStyle='#333';
+    ctx.fillRect(40,p.y-6,8,12);
+    ctx.fillStyle=p.v?'#00ff88':'#444';
+    ctx.fillRect(40,p.y-5,7,10);
+    ctx.strokeStyle='#555';ctx.lineWidth=0.5;
+    ctx.strokeRect(40,p.y-6,8,12);
+  });
+  const x=exp2X,y=exp2Y,z=exp2Z;
+  let f;
+  if(exp2Mode==='SOP'){
+    const t1=(y^1)&z;
+    const t2=(x^1)&y;
+    f=t1|t2;
+    ctx.fillStyle='#888';ctx.font='10px monospace';ctx.textAlign='center';
+    ctx.fillText('AND',100,40);ctx.fillText('AND',100,70);
+    ctx.fillText('OR',140,55);
+    drawSmallGate(ctx,80,40,'AND');
+    drawSmallGate(ctx,80,70,'AND');
+    drawSmallGate(ctx,130,55,'OR');
+    ctx.fillStyle=t1?'#00ff88':'#666';
+    ctx.fillText(`Y'Z=${t1}`,100,55);
+    ctx.fillStyle=t2?'#00ff88':'#666';
+    ctx.fillText(`X'Y=${t2}`,100,85);
+  }else{
+    const t1=y|z;
+    const t2=(x^1)|(y^1);
+    f=t1&t2;
+    drawSmallGate(ctx,80,40,'OR');
+    drawSmallGate(ctx,80,70,'OR');
+    drawSmallGate(ctx,130,55,'AND');
+    ctx.fillStyle='#888';ctx.font='10px monospace';ctx.textAlign='center';
+    ctx.fillText('OR',100,40);ctx.fillText('OR',100,70);
+    ctx.fillText('AND',140,55);
+    ctx.fillStyle=t1?'#00ff88':'#666';
+    ctx.fillText(`Y+Z=${t1}`,100,55);
+    ctx.fillStyle=t2?'#00ff88':'#666';
+    ctx.fillText(`X'+Y'=${t2}`,100,85);
+  }
+  ctx.fillStyle=f?'#00ff88':'#ff4444';
+  ctx.beginPath();ctx.arc(165,55,8,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#000';ctx.font='bold 10px monospace';ctx.fillText(f?'1':'0',165,58);
+  ctx.strokeStyle='#555';ctx.lineWidth=0.5;
+  ctx.beginPath();ctx.moveTo(48,44);ctx.lineTo(70,44);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(48,74);ctx.lineTo(70,74);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(48,104);ctx.lineTo(100,60);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(96,44);ctx.lineTo(115,52);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(96,74);ctx.lineTo(115,58);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(146,55);ctx.lineTo(157,55);ctx.stroke();
+}
+
+function drawSmallGate(ctx,x,y,type){
+  ctx.strokeStyle='#00d4ff';ctx.lineWidth=1;
+  ctx.beginPath();
+  if(type==='AND'){
+    ctx.moveTo(x-10,y-10);ctx.lineTo(x,y-10);
+    ctx.arc(x,y-5,10,-Math.PI/2,Math.PI/2);
+    ctx.lineTo(x-10,y+10);ctx.lineTo(x-10,y-10);
+  }else if(type==='OR'){
+    ctx.moveTo(x-10,y-10);ctx.quadraticCurveTo(x+5,y-10,x+10,y);
+    ctx.quadraticCurveTo(x+5,y+10,x-10,y+10);
+    ctx.quadraticCurveTo(x-3,y,x-10,y-10);
+  }
+  ctx.stroke();
+}
+
+window.switchTab=function(t){
+  currentTab=t;
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',i+1===t));
+  document.getElementById('exp1-content').classList.toggle('active',t===1);
+  document.getElementById('exp2-content').classList.toggle('active',t===2);
+  document.getElementById('tt1-wrap').style.display=t===1?'block':'none';
+  document.getElementById('tt2-wrap').style.display=t===2?'block':'none';
+  document.getElementById('bottom-left').style.display=t===1?'block':'none';
+  document.getElementById('bottom-right').style.display=t===1?'block':'none';
+  if(t===2){buildExp2TruthTable();drawExp2Circuit();}
+  if(t===1){updateOutput();}
+};
+
+window.setExp2Mode=function(m){
+  exp2Mode=m;
+  document.getElementById('sopBtn').classList.toggle('active',m==='SOP');
+  document.getElementById('posBtn').classList.toggle('active',m==='POS');
+  drawExp2Circuit();
+};
+
+function animate(){
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene,camera);
+}
+
+window.addEventListener('resize',()=>{
+  camera.aspect=window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth,window.innerHeight);
+});
+
+buildTruthTable();
+updateOutput();
+buildExp2TruthTable();
+animate();
+
+setTimeout(()=>{
+  const inst=document.getElementById('instructions');
+  if(inst)inst.style.opacity='0';
+},5000);
+</script>
+</body>
+</html>
