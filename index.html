@@ -8,11 +8,14 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{overflow:hidden;font-family:'Segoe UI',Tahoma,sans-serif;background:#0a0a1a}
 #canvas{display:block;width:100vw;height:100vh}
-#title-bar{position:fixed;top:0;left:0;right:0;height:48px;background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);display:flex;align-items:center;justify-content:center;z-index:100;border-bottom:2px solid #00d4ff;gap:20px}
+#title-bar{position:fixed;top:0;left:0;right:0;height:48px;background:linear-gradient(135deg,#0f0c29,#302b63,#24243e);display:flex;align-items:center;justify-content:center;z-index:100;border-bottom:2px solid #00d4ff;gap:12px}
 #title-bar h1{color:#00d4ff;font-size:16px;letter-spacing:2px;text-transform:uppercase}
 .tab-bar{display:flex;gap:4px}
 .tab-btn{padding:6px 16px;background:rgba(0,212,255,0.1);border:1px solid #302b63;color:#888;border-radius:6px;cursor:pointer;font-size:12px;transition:all .3s}
 .tab-btn.active{background:rgba(0,212,255,0.2);color:#00d4ff;border-color:#00d4ff}
+#ar-btn{padding:6px 16px;background:rgba(0,255,136,0.15);border:1px solid #00ff88;color:#00ff88;border-radius:6px;cursor:pointer;font-size:12px;transition:all .3s;font-weight:700}
+#ar-btn:hover{background:rgba(0,255,136,0.3)}
+#ar-btn.unsupported{opacity:0.4;cursor:not-allowed;border-color:#555;color:#555}
 #left-panel{position:fixed;top:58px;left:10px;width:210px;background:rgba(15,12,41,0.95);border-radius:10px;border:1px solid #302b63;padding:14px;z-index:100;max-height:calc(100vh - 68px);overflow-y:auto}
 .ptitle{color:#00d4ff;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;border-bottom:1px solid #302b63;padding-bottom:5px}
 .gate-btn{display:block;width:100%;padding:8px 10px;margin:4px 0;background:#16213e;border:1px solid #302b63;color:#ccc;border-radius:6px;cursor:pointer;font-size:12px;transition:all .3s;text-align:left}
@@ -54,6 +57,20 @@ body{overflow:hidden;font-family:'Segoe UI',Tahoma,sans-serif;background:#0a0a1a
 #exp1-content,#exp2-content{display:none}
 #exp1-content.active,#exp2-content.active{display:block}
 .ni{color:#ff6b6b;font-size:10px;font-style:italic;margin-top:4px}
+#ar-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;pointer-events:none;z-index:200}
+#ar-overlay>*{pointer-events:auto}
+#ar-header{position:absolute;top:10px;left:50%;transform:translateX(-50%);display:flex;gap:10px;align-items:center}
+#ar-status{background:rgba(0,0,0,0.8);color:#00d4ff;padding:8px 18px;border-radius:20px;font-size:13px;white-space:nowrap;border:1px solid rgba(0,212,255,0.3)}
+#ar-exit{background:rgba(255,60,60,0.9);color:#fff;border:none;padding:8px 16px;border-radius:20px;cursor:pointer;font-size:13px;font-weight:700}
+#ar-controls{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.85);border-radius:14px;padding:14px 18px;border:1px solid rgba(0,212,255,0.3);min-width:300px}
+.ar-gate-row{display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap}
+.ar-gate{padding:6px 10px;background:#16213e;border:1px solid #302b63;color:#888;border-radius:6px;cursor:pointer;font-size:11px;transition:all .3s}
+.ar-gate.active{background:#0f3460;color:#00d4ff;border-color:#00d4ff}
+.ar-input-row{display:flex;gap:16px;margin-bottom:10px;align-items:center;justify-content:center}
+.ar-input-row span{color:#e0e0e0;font-size:14px;font-weight:700}
+.ar-swap{width:44px;height:34px;background:#16213e;border:1px solid #00d4ff;color:#00d4ff;border-radius:8px;cursor:pointer;font-size:16px;font-weight:700;transition:all .2s}
+.ar-swap.on{background:#0f3460;box-shadow:0 0 12px rgba(0,212,255,0.4)}
+.ar-output{text-align:center;color:#00ff88;font-size:22px;font-weight:700;padding-top:6px;border-top:1px solid #302b63}
 </style>
 </head>
 <body>
@@ -63,6 +80,7 @@ body{overflow:hidden;font-family:'Segoe UI',Tahoma,sans-serif;background:#0a0a1a
     <button class="tab-btn active" onclick="switchTab(1)">Exp 1: Logic Gates</button>
     <button class="tab-btn" onclick="switchTab(2)">Exp 2: SOP / POS</button>
   </div>
+  <button id="ar-btn" class="unsupported">AR Not Supported</button>
 </div>
 
 <div id="left-panel">
@@ -155,6 +173,28 @@ body{overflow:hidden;font-family:'Segoe UI',Tahoma,sans-serif;background:#0a0a1a
   </div>
 </div>
 
+<div id="ar-overlay">
+  <div id="ar-header">
+    <span id="ar-status">Point at a flat surface...</span>
+    <button id="ar-exit" onclick="exitAR()">Exit AR</button>
+  </div>
+  <div id="ar-controls">
+    <div class="ar-gate-row">
+      <button class="ar-gate active" data-g="AND" onclick="arSelectGate('AND')">AND</button>
+      <button class="ar-gate" data-g="OR" onclick="arSelectGate('OR')">OR</button>
+      <button class="ar-gate" data-g="NAND" onclick="arSelectGate('NAND')">NAND</button>
+      <button class="ar-gate" data-g="NOR" onclick="arSelectGate('NOR')">NOR</button>
+      <button class="ar-gate" data-g="NOT" onclick="arSelectGate('NOT')">NOT</button>
+      <button class="ar-gate" data-g="XOR" onclick="arSelectGate('XOR')">XOR</button>
+    </div>
+    <div class="ar-input-row">
+      <span>A <button class="ar-swap" id="arSwA" onclick="toggleA()">0</button></span>
+      <span id="arBwrap">B <button class="ar-swap" id="arSwB" onclick="toggleB()">0</button></span>
+    </div>
+    <div class="ar-output">F = <span id="arOutVal">0</span></div>
+  </div>
+</div>
+
 <canvas id="canvas"></canvas>
 
 <script type="importmap">
@@ -189,21 +229,27 @@ let currentGate='AND';
 let inpA=0,inpB=0;
 let exp2X=0,exp2Y=0,exp2Z=0,exp2Mode='SOP';
 let currentTab=1;
+let arPlaced=false;
+let arHitSource=null;
+let arHitRequested=false;
+let arSessionActive=false;
+const AR_SCALE=0.001;
 
 const scene=new THREE.Scene();
 scene.background=new THREE.Color(0x0a0a1a);
 scene.fog=new THREE.Fog(0x0a0a1a,600,1200);
 
-const camera=new THREE.PerspectiveCamera(50,window.innerWidth/window.innerHeight,1,2000);
+const camera=new THREE.PerspectiveCamera(50,window.innerWidth/window.innerHeight,0.001,2000);
 camera.position.set(0,280,380);
 
-const renderer=new THREE.WebGLRenderer({canvas:document.getElementById('canvas'),antialias:true});
+const renderer=new THREE.WebGLRenderer({canvas:document.getElementById('canvas'),antialias:true,alpha:true});
 renderer.setSize(window.innerWidth,window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
 renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure=1.2;
+renderer.xr.enabled=true;
 
 const controls=new OrbitControls(camera,renderer.domElement);
 controls.enableDamping=true;
@@ -215,24 +261,25 @@ controls.target.set(0,0,20);
 
 scene.add(new THREE.AmbientLight(0x404060,0.6));
 const dLight=new THREE.DirectionalLight(0xffffff,0.8);
-dLight.position.set(100,300,200);
-dLight.castShadow=true;
+dLight.position.set(100,300,200);dLight.castShadow=true;
 dLight.shadow.mapSize.set(1024,1024);
 scene.add(dLight);
 const fillLight=new THREE.DirectionalLight(0x8888ff,0.3);
 fillLight.position.set(-100,200,-100);
 scene.add(fillLight);
 
+const labGroup=new THREE.Group();
+scene.add(labGroup);
+
 const tableGeo=new THREE.BoxGeometry(600,20,400);
 const tableMat=new THREE.MeshStandardMaterial({color:0x5c3a1e,roughness:0.8,metalness:0.1});
 const table=new THREE.Mesh(tableGeo,tableMat);
-table.position.y=-10;
-table.receiveShadow=true;
-scene.add(table);
+table.position.y=-10;table.receiveShadow=true;
+labGroup.add(table);
 
 const tableEdge=new THREE.Mesh(new THREE.BoxGeometry(604,4,404),new THREE.MeshStandardMaterial({color:0x3a2210}));
 tableEdge.position.y=-20;
-scene.add(tableEdge);
+labGroup.add(tableEdge);
 
 function makeBreadboardTexture(){
   const c=document.createElement('canvas');
@@ -266,164 +313,131 @@ function makeBreadboardTexture(){
 const bbGeo=new THREE.BoxGeometry(260,12,120);
 const bbMat=new THREE.MeshStandardMaterial({map:makeBreadboardTexture(),roughness:0.5});
 const breadboard=new THREE.Mesh(bbGeo,bbMat);
-breadboard.position.set(0,6,20);
-breadboard.castShadow=true;
-breadboard.receiveShadow=true;
-scene.add(breadboard);
+breadboard.position.set(0,6,20);breadboard.castShadow=true;breadboard.receiveShadow=true;
+labGroup.add(breadboard);
 
 function createICChip(gate){
   const g=new THREE.Group();
-  const body=new THREE.Mesh(
-    new THREE.BoxGeometry(50,8,18),
-    new THREE.MeshStandardMaterial({color:0x1a1a1a,roughness:0.3})
-  );
-  body.castShadow=true;
-  g.add(body);
-  const tc=document.createElement('canvas');
-  tc.width=128;tc.height=32;
+  const body=new THREE.Mesh(new THREE.BoxGeometry(50,8,18),new THREE.MeshStandardMaterial({color:0x1a1a1a,roughness:0.3}));
+  body.castShadow=true;g.add(body);
+  const tc=document.createElement('canvas');tc.width=128;tc.height=32;
   const tctx=tc.getContext('2d');
   tctx.fillStyle='#1a1a1a';tctx.fillRect(0,0,128,32);
   tctx.fillStyle='#ddd';tctx.font='bold 18px monospace';
   tctx.textAlign='center';tctx.textBaseline='middle';
   tctx.fillText(gate.ic,64,16);
-  const label=new THREE.Mesh(
-    new THREE.PlaneGeometry(46,7),
-    new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(tc),transparent:true})
-  );
-  label.rotation.x=-Math.PI/2;
-  label.position.y=4.1;
-  g.add(label);
-  const notch=new THREE.Mesh(
-    new THREE.CylinderGeometry(2,2,18,16),
-    new THREE.MeshStandardMaterial({color:0x333333})
-  );
-  notch.rotation.x=Math.PI/2;
-  notch.position.set(-25,0,0);
-  g.add(notch);
+  const label=new THREE.Mesh(new THREE.PlaneGeometry(46,7),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(tc),transparent:true}));
+  label.rotation.x=-Math.PI/2;label.position.y=4.1;g.add(label);
+  const notch=new THREE.Mesh(new THREE.CylinderGeometry(2,2,18,16),new THREE.MeshStandardMaterial({color:0x333333}));
+  notch.rotation.x=Math.PI/2;notch.position.set(-25,0,0);g.add(notch);
   const pinMat=new THREE.MeshStandardMaterial({color:0xcccccc,metalness:0.8,roughness:0.2});
   for(let i=0;i<7;i++){
     const pin=new THREE.Mesh(new THREE.BoxGeometry(2,1.5,4),pinMat);
-    pin.position.set(-21+i*7,-4.5,-11);
-    pin.castShadow=true;
-    g.add(pin);
+    pin.position.set(-21+i*7,-4.5,-11);pin.castShadow=true;g.add(pin);
     const pin2=new THREE.Mesh(new THREE.BoxGeometry(2,1.5,4),pinMat);
-    pin2.position.set(-21+i*7,-4.5,11);
-    pin2.castShadow=true;
-    g.add(pin2);
+    pin2.position.set(-21+i*7,-4.5,11);pin2.castShadow=true;g.add(pin2);
   }
   return g;
 }
 
 let icChip=createICChip(GATES.AND);
 icChip.position.set(0,16,20);
-scene.add(icChip);
+labGroup.add(icChip);
 
 function createSwitch3D(x,z,label){
   const g=new THREE.Group();
-  const base=new THREE.Mesh(
-    new THREE.BoxGeometry(20,6,14),
-    new THREE.MeshStandardMaterial({color:0x222222,roughness:0.4})
-  );
-  base.position.y=3;
-  g.add(base);
-  const lever=new THREE.Mesh(
-    new THREE.BoxGeometry(4,12,6),
-    new THREE.MeshStandardMaterial({color:0x888888,metalness:0.6})
-  );
-  lever.position.set(0,9,0);
-  lever.userData={isSwitch:true,label:label,state:0};
-  g.add(lever);
+  const base=new THREE.Mesh(new THREE.BoxGeometry(20,6,14),new THREE.MeshStandardMaterial({color:0x222222,roughness:0.4}));
+  base.position.y=3;g.add(base);
+  const lever=new THREE.Mesh(new THREE.BoxGeometry(4,12,6),new THREE.MeshStandardMaterial({color:0x888888,metalness:0.6}));
+  lever.position.set(0,9,0);lever.userData={isSwitch:true,label:label,state:0};g.add(lever);
   g.position.set(x,6,z);
   return{group:g,lever:lever};
 }
 
 const swA=createSwitch3D(-60,20,'A');
-scene.add(swA.group);
+labGroup.add(swA.group);
 const swB=createSwitch3D(-60,50,'B');
-scene.add(swB.group);
+labGroup.add(swB.group);
 
 function createLED3D(x,z){
   const g=new THREE.Group();
-  const base=new THREE.Mesh(
-    new THREE.CylinderGeometry(4,4,3,16),
-    new THREE.MeshStandardMaterial({color:0x333333})
-  );
+  const base=new THREE.Mesh(new THREE.CylinderGeometry(4,4,3,16),new THREE.MeshStandardMaterial({color:0x333333}));
   g.add(base);
-  const dome=new THREE.Mesh(
-    new THREE.SphereGeometry(5,16,16,0,Math.PI*2,0,Math.PI/2),
-    new THREE.MeshStandardMaterial({color:0x440000,roughness:0.2,emissive:0x000000})
-  );
-  dome.position.y=1.5;
-  g.add(dome);
-  let ptLight=new THREE.PointLight(0x00ff00,0,50);
-  ptLight.position.y=8;
-  g.add(ptLight);
+  const dome=new THREE.Mesh(new THREE.SphereGeometry(5,16,16,0,Math.PI*2,0,Math.PI/2),new THREE.MeshStandardMaterial({color:0x440000,roughness:0.2,emissive:0x000000}));
+  dome.position.y=1.5;g.add(dome);
+  const ptLight=new THREE.PointLight(0x00ff00,0,50);ptLight.position.y=8;g.add(ptLight);
   g.position.set(x,6,z);
   return{group:g,dome,ptLight};
 }
 
 const led1=createLED3D(70,35);
-scene.add(led1.group);
+labGroup.add(led1.group);
 const led2=createLED3D(90,35);
-scene.add(led2.group);
+labGroup.add(led2.group);
 
 function createWire(pts,color){
   const curve=new THREE.CatmullRomCurve3(pts.map(p=>new THREE.Vector3(p[0],p[1],p[2])));
   const geo=new THREE.TubeGeometry(curve,20,1.2,8,false);
   const mat=new THREE.MeshStandardMaterial({color,roughness:0.5});
-  const m=new THREE.Mesh(geo,mat);
-  m.castShadow=true;
-  return m;
+  const m=new THREE.Mesh(geo,mat);m.castShadow=true;return m;
 }
 
 const wireColors=[0xff0000,0x0000ff,0x00aa00,0xff8800,0xaa00aa,0x00aaaa];
-const wires=[];
+const wireObjs=[];
+const labExtras=[];
+
+function clearLabExtras(){
+  labExtras.forEach(o=>labGroup.remove(o));
+  labExtras.length=0;
+}
 
 function buildWires(){
-  wires.forEach(w=>scene.remove(w));
-  wires.length=0;
+  wireObjs.forEach(w=>labGroup.remove(w));
+  wireObjs.length=0;
+  clearLabExtras();
   const c1=wireColors[0],c2=wireColors[1],c3=wireColors[2],c4=wireColors[3];
-  wires.push(createWire([[-60,14,20],[-45,20,20],[-21,14,20]],c1));
+  wireObjs.push(createWire([[-60,14,20],[-45,20,20],[-21,14,20]],c1));
   if(GATES[currentGate].inputs===2){
-    wires.push(createWire([[-60,14,50],[-45,20,50],[-14,14,50]],c2));
-    wires.push(createWire([[7,14,20],[20,20,20],[70,14,35]],c3));
+    wireObjs.push(createWire([[-60,14,50],[-45,20,50],[-14,14,50]],c2));
+    wireObjs.push(createWire([[7,14,20],[20,20,20],[70,14,35]],c3));
   }else{
-    wires.push(createWire([[7,14,20],[20,20,20],[70,14,35]],c3));
+    wireObjs.push(createWire([[7,14,20],[20,20,20],[70,14,35]],c3));
   }
-  wires.push(createWire([[-140,10,80],[-100,10,80],[0,10,80]],c4));
-  wires.push(createWire([[0,10,80],[0,14,20]],0xff0000));
-  wires.push(createWire([[-140,10,90],[-100,10,90],[0,10,90]],0x0000ff));
-  wires.push(createWire([[0,10,90],[0,14,20]],0x0000ff));
-  const psGeo=new THREE.BoxGeometry(40,20,30);
-  const psMat=new THREE.MeshStandardMaterial({color:0x333344,roughness:0.3});
-  const ps=new THREE.Mesh(psGeo,psMat);
-  ps.position.set(-120,15,85);
-  ps.castShadow=true;
-  scene.add(ps);
-  wires.push(ps);
-  const led3dGeo=new THREE.BoxGeometry(15,10,10);
-  const led3dMat=new THREE.MeshStandardMaterial({color:0x223322,emissive:0x001100,roughness:0.3});
-  const led3dBox=new THREE.Mesh(led3dGeo,led3dMat);
-  led3dBox.position.set(85,15,35);
-  led3dBox.castShadow=true;
-  scene.add(led3dBox);
-  wires.push(led3dBox);
+  wireObjs.push(createWire([[-140,10,80],[-100,10,80],[0,10,80]],c4));
+  wireObjs.push(createWire([[0,10,80],[0,14,20]],0xff0000));
+  wireObjs.push(createWire([[-140,10,90],[-100,10,90],[0,10,90]],0x0000ff));
+  wireObjs.push(createWire([[0,10,90],[0,14,20]],0x0000ff));
+  const ps=new THREE.Mesh(new THREE.BoxGeometry(40,20,30),new THREE.MeshStandardMaterial({color:0x333344,roughness:0.3}));
+  ps.position.set(-120,15,85);ps.castShadow=true;labGroup.add(ps);labExtras.push(ps);
+  const ledBox=new THREE.Mesh(new THREE.BoxGeometry(15,10,10),new THREE.MeshStandardMaterial({color:0x223322,emissive:0x001100,roughness:0.3}));
+  ledBox.position.set(85,15,35);ledBox.castShadow=true;labGroup.add(ledBox);labExtras.push(ledBox);
+  wireObjs.forEach(w=>labGroup.add(w));
 }
 buildWires();
+
+const reticle=new THREE.Mesh(new THREE.RingGeometry(0.06,0.08,32).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x00d4ff,opacity:0.8,transparent:true}));
+reticle.visible=false;reticle.renderOrder=999;
+scene.add(reticle);
+const reticleDot=new THREE.Mesh(new THREE.CircleGeometry(0.015,16).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:0x00d4ff}));
+reticle.add(reticleDot);
+
+let arExtraLights=[];
+const savedBg=scene.background;
+const savedFog=scene.fog;
 
 const raycaster=new THREE.Raycaster();
 const mouse=new THREE.Vector2();
 const switchLevers=[swA.lever,swB.lever];
 
 renderer.domElement.addEventListener('click',(e)=>{
+  if(arSessionActive)return;
   mouse.x=(e.clientX/window.innerWidth)*2-1;
   mouse.y=-(e.clientY/window.innerHeight)*2+1;
   raycaster.setFromCamera(mouse,camera);
   const hits=raycaster.intersectObjects(switchLevers);
   if(hits.length>0){
     const lbl=hits[0].object.userData.label;
-    if(lbl==='A')toggleA();
-    else toggleB();
+    if(lbl==='A')toggleA();else toggleB();
   }
 });
 
@@ -433,19 +447,32 @@ function updateSwitch3D(lever,state){
   lever.userData.state=state;
 }
 
+function syncARExp1(){
+  const arA=document.getElementById('arSwA');
+  const arB=document.getElementById('arSwB');
+  if(arA){arA.textContent=inpA;arA.classList.toggle('on',inpA===1);}
+  if(arB){arB.textContent=inpB;arB.classList.toggle('on',inpB===1);}
+  const gate=GATES[currentGate];
+  const out=gate.inputs===2?gate.fn(inpA,inpB):gate.fn(inpA);
+  const arOut=document.getElementById('arOutVal');
+  if(arOut)arOut.textContent=out;
+  document.querySelectorAll('.ar-gate').forEach(b=>b.classList.toggle('active',b.dataset.g===currentGate));
+  document.getElementById('arBwrap').style.display=gate.inputs===2?'':'none';
+}
+
 window.toggleA=function(){
   inpA=inpA?0:1;
   document.getElementById('swA').classList.toggle('on',inpA===1);
   document.getElementById('vA').textContent=inpA;
   updateSwitch3D(swA.lever,inpA);
-  updateOutput();
+  updateOutput();syncARExp1();
 };
 window.toggleB=function(){
   inpB=inpB?0:1;
   document.getElementById('swB').classList.toggle('on',inpB===1);
   document.getElementById('vB').textContent=inpB;
   updateSwitch3D(swB.lever,inpB);
-  updateOutput();
+  updateOutput();syncARExp1();
 };
 
 window.selectGate=function(g){
@@ -459,13 +486,15 @@ window.selectGate=function(g){
   document.getElementById('theoryTxt').innerHTML=gate.theory;
   document.getElementById('rowB').style.display=gate.inputs===2?'flex':'none';
   document.getElementById('notNote').style.display=gate.inputs===1?'block':'none';
-  scene.remove(icChip);
+  labGroup.remove(icChip);
   icChip=createICChip(gate);
   icChip.position.set(0,16,20);
-  scene.add(icChip);
-  buildWires();
-  buildTruthTable();
-  updateOutput();
+  labGroup.add(icChip);
+  buildWires();buildTruthTable();updateOutput();syncARExp1();
+};
+
+window.arSelectGate=function(g){
+  selectGate(g);
 };
 
 function buildTruthTable(){
@@ -489,13 +518,11 @@ function updateOutput(){
   const out=gate.inputs===2?gate.fn(inpA,inpB):gate.fn(inpA);
   const oDisp=document.getElementById('oDisp');
   oDisp.innerHTML=`${out} <span class="led-dot ${out?'on':'off'}" id="led3d"></span>`;
-  oDisp.querySelector('.ov')&&0;
   document.querySelector('#left-panel .led-box .ov').className=`ov ${out?'high':'low'}`;
   if(out){
     led1.dome.material.color.setHex(0x00ff00);
     led1.dome.material.emissive.setHex(0x00ff00);
-    led1.ptLight.intensity=2;
-    led1.ptLight.color.setHex(0x00ff00);
+    led1.ptLight.intensity=2;led1.ptLight.color.setHex(0x00ff00);
   }else{
     led1.dome.material.color.setHex(0x440000);
     led1.dome.material.emissive.setHex(0x000000);
@@ -522,34 +549,29 @@ function buildExp2TruthTable(){
 window.toggleX=function(){
   exp2X=exp2X?0:1;
   document.getElementById('swX').classList.toggle('on',exp2X===1);
-  document.getElementById('vX').textContent=exp2X;
-  updateExp2();
+  document.getElementById('vX').textContent=exp2X;updateExp2();
 };
 window.toggleY=function(){
   exp2Y=exp2Y?0:1;
   document.getElementById('swY').classList.toggle('on',exp2Y===1);
-  document.getElementById('vY').textContent=exp2Y;
-  updateExp2();
+  document.getElementById('vY').textContent=exp2Y;updateExp2();
 };
 window.toggleZ=function(){
   exp2Z=exp2Z?0:1;
   document.getElementById('swZ').classList.toggle('on',exp2Z===1);
-  document.getElementById('vZ').textContent=exp2Z;
-  updateExp2();
+  document.getElementById('vZ').textContent=exp2Z;updateExp2();
 };
 
 function computeExp2(x,y,z){
   const minterms=[1,2,3,5];
-  const val=(x<<2)|(y<<1)|z;
-  return minterms.includes(val)?1:0;
+  return minterms.includes((x<<2)|(y<<1)|z)?1:0;
 }
 
 function updateExp2(){
   const f=computeExp2(exp2X,exp2Y,exp2Z);
   document.querySelector('#exp2-content .led-box .ov').innerHTML=`${f} <span class="led-dot ${f?'on':'off'}"></span>`;
   document.querySelector('#exp2-content .led-box .ov').className=`ov ${f?'high':'low'}`;
-  buildExp2TruthTable();
-  drawExp2Circuit();
+  buildExp2TruthTable();drawExp2Circuit();
 }
 
 function drawExp2Circuit(){
@@ -558,54 +580,33 @@ function drawExp2Circuit(){
   const ctx=cv.getContext('2d');
   ctx.clearRect(0,0,cv.width,cv.height);
   ctx.fillStyle='#0a0a1a';ctx.fillRect(0,0,cv.width,cv.height);
-  ctx.strokeStyle='#00d4ff';ctx.lineWidth=1;
-  ctx.strokeRect(1,1,cv.width-2,cv.height-2);
-  ctx.fillStyle='#00d4ff';ctx.font='bold 11px monospace';
-  ctx.textAlign='center';
+  ctx.strokeStyle='#00d4ff';ctx.lineWidth=1;ctx.strokeRect(1,1,cv.width-2,cv.height-2);
+  ctx.fillStyle='#00d4ff';ctx.font='bold 11px monospace';ctx.textAlign='center';
   ctx.fillText(exp2Mode==='SOP'?'SOP: F = Y\'Z + X\'Y':'POS: F = (Y+Z)(X\'+Y\')',cv.width/2,15);
   const inps=[{l:'X',v:exp2X,y:40},{l:'Y',v:exp2Y,y:70},{l:'Z',v:exp2Z,y:100}];
   inps.forEach(p=>{
-    ctx.fillStyle=p.v?'#00ff88':'#ff4444';
-    ctx.font='bold 12px monospace';
-    ctx.textAlign='left';
+    ctx.fillStyle=p.v?'#00ff88':'#ff4444';ctx.font='bold 12px monospace';ctx.textAlign='left';
     ctx.fillText(`${p.l}=${p.v}`,10,p.y+4);
-    ctx.fillStyle='#333';
-    ctx.fillRect(40,p.y-6,8,12);
-    ctx.fillStyle=p.v?'#00ff88':'#444';
-    ctx.fillRect(40,p.y-5,7,10);
-    ctx.strokeStyle='#555';ctx.lineWidth=0.5;
-    ctx.strokeRect(40,p.y-6,8,12);
+    ctx.fillStyle='#333';ctx.fillRect(40,p.y-6,8,12);
+    ctx.fillStyle=p.v?'#00ff88':'#444';ctx.fillRect(40,p.y-5,7,10);
+    ctx.strokeStyle='#555';ctx.lineWidth=0.5;ctx.strokeRect(40,p.y-6,8,12);
   });
   const x=exp2X,y=exp2Y,z=exp2Z;
   let f;
   if(exp2Mode==='SOP'){
-    const t1=(y^1)&z;
-    const t2=(x^1)&y;
-    f=t1|t2;
+    const t1=(y^1)&z,t2=(x^1)&y;f=t1|t2;
+    drawSmallGate(ctx,80,40,'AND');drawSmallGate(ctx,80,70,'AND');drawSmallGate(ctx,130,55,'OR');
     ctx.fillStyle='#888';ctx.font='10px monospace';ctx.textAlign='center';
-    ctx.fillText('AND',100,40);ctx.fillText('AND',100,70);
-    ctx.fillText('OR',140,55);
-    drawSmallGate(ctx,80,40,'AND');
-    drawSmallGate(ctx,80,70,'AND');
-    drawSmallGate(ctx,130,55,'OR');
-    ctx.fillStyle=t1?'#00ff88':'#666';
-    ctx.fillText(`Y'Z=${t1}`,100,55);
-    ctx.fillStyle=t2?'#00ff88':'#666';
-    ctx.fillText(`X'Y=${t2}`,100,85);
+    ctx.fillText('AND',100,40);ctx.fillText('AND',100,70);ctx.fillText('OR',140,55);
+    ctx.fillStyle=t1?'#00ff88':'#666';ctx.fillText(`Y'Z=${t1}`,100,55);
+    ctx.fillStyle=t2?'#00ff88':'#666';ctx.fillText(`X'Y=${t2}`,100,85);
   }else{
-    const t1=y|z;
-    const t2=(x^1)|(y^1);
-    f=t1&t2;
-    drawSmallGate(ctx,80,40,'OR');
-    drawSmallGate(ctx,80,70,'OR');
-    drawSmallGate(ctx,130,55,'AND');
+    const t1=y|z,t2=(x^1)|(y^1);f=t1&t2;
+    drawSmallGate(ctx,80,40,'OR');drawSmallGate(ctx,80,70,'OR');drawSmallGate(ctx,130,55,'AND');
     ctx.fillStyle='#888';ctx.font='10px monospace';ctx.textAlign='center';
-    ctx.fillText('OR',100,40);ctx.fillText('OR',100,70);
-    ctx.fillText('AND',140,55);
-    ctx.fillStyle=t1?'#00ff88':'#666';
-    ctx.fillText(`Y+Z=${t1}`,100,55);
-    ctx.fillStyle=t2?'#00ff88':'#666';
-    ctx.fillText(`X'+Y'=${t2}`,100,85);
+    ctx.fillText('OR',100,40);ctx.fillText('OR',100,70);ctx.fillText('AND',140,55);
+    ctx.fillStyle=t1?'#00ff88':'#666';ctx.fillText(`Y+Z=${t1}`,100,55);
+    ctx.fillStyle=t2?'#00ff88':'#666';ctx.fillText(`X'+Y'=${t2}`,100,85);
   }
   ctx.fillStyle=f?'#00ff88':'#ff4444';
   ctx.beginPath();ctx.arc(165,55,8,0,Math.PI*2);ctx.fill();
@@ -620,8 +621,7 @@ function drawExp2Circuit(){
 }
 
 function drawSmallGate(ctx,x,y,type){
-  ctx.strokeStyle='#00d4ff';ctx.lineWidth=1;
-  ctx.beginPath();
+  ctx.strokeStyle='#00d4ff';ctx.lineWidth=1;ctx.beginPath();
   if(type==='AND'){
     ctx.moveTo(x-10,y-10);ctx.lineTo(x,y-10);
     ctx.arc(x,y-5,10,-Math.PI/2,Math.PI/2);
@@ -654,27 +654,131 @@ window.setExp2Mode=function(m){
   drawExp2Circuit();
 };
 
-function animate(){
-  requestAnimationFrame(animate);
-  controls.update();
+async function initAR(){
+  let supported=false;
+  try{
+    if(navigator.xr){
+      supported=await navigator.xr.isSessionSupported('immersive-ar');
+    }
+  }catch(e){}
+  const arBtn=document.getElementById('ar-btn');
+  if(supported){
+    arBtn.textContent='View in AR';
+    arBtn.classList.remove('unsupported');
+    arBtn.onclick=startAR;
+  }
+}
+
+async function startAR(){
+  try{
+    const session=await navigator.xr.requestSession('immersive-ar',{
+      requiredFeatures:['hit-test'],
+      optionalFeatures:['dom-overlay'],
+      domOverlay:{root:document.getElementById('ar-overlay')}
+    });
+    renderer.xr.setSession(session);
+  }catch(e){
+    console.error('AR failed:',e);
+    document.getElementById('ar-status').textContent='AR failed: '+e.message;
+  }
+}
+
+window.exitAR=function(){
+  const session=renderer.xr.getSession();
+  if(session)session.end();
+};
+
+renderer.xr.addEventListener('sessionstart',()=>{
+  arSessionActive=true;arPlaced=false;arHitRequested=false;arHitSource=null;
+  scene.background=null;scene.fog=null;
+  controls.enabled=false;
+  labGroup.visible=false;
+  reticle.visible=false;
+  document.getElementById('ar-overlay').style.display='block';
+  document.getElementById('left-panel').style.display='none';
+  document.getElementById('right-panel').style.display='none';
+  document.getElementById('bottom-left').style.display='none';
+  document.getElementById('bottom-right').style.display='none';
+  const a1=new THREE.AmbientLight(0xffffff,0.7);
+  const h1=new THREE.HemisphereLight(0xffffff,0x444444,0.5);
+  scene.add(a1);scene.add(h1);
+  arExtraLights.push(a1,h1);
+  syncARExp1();
+});
+
+renderer.xr.addEventListener('sessionend',()=>{
+  arSessionActive=false;arPlaced=false;arHitSource=null;arHitRequested=false;
+  scene.background=savedBg;scene.fog=savedFog;
+  controls.enabled=true;
+  labGroup.visible=true;
+  labGroup.position.set(0,0,0);
+  labGroup.scale.set(1,1,1);
+  reticle.visible=false;
+  arExtraLights.forEach(l=>scene.remove(l));
+  arExtraLights=[];
+  document.getElementById('ar-overlay').style.display='none';
+  if(currentTab===1){
+    document.getElementById('left-panel').style.display='';
+    document.getElementById('bottom-left').style.display='';
+    document.getElementById('bottom-right').style.display='';
+  }
+  document.getElementById('right-panel').style.display='';
+});
+
+renderer.xr.addEventListener('select',()=>{
+  if(reticle.visible&&!arPlaced){
+    const pos=new THREE.Vector3();
+    pos.setFromMatrixPosition(reticle.matrix);
+    labGroup.position.copy(pos);
+    labGroup.scale.setScalar(AR_SCALE);
+    labGroup.visible=true;
+    arPlaced=true;reticle.visible=false;
+    document.getElementById('ar-status').textContent='Lab placed! Use controls below.';
+  }
+});
+
+function animate(timestamp,frame){
+  if(renderer.xr.isPresenting&&frame){
+    const refSpace=renderer.xr.getReferenceSpace();
+    const session=renderer.xr.getSession();
+    if(!arHitRequested){
+      session.requestReferenceSpace('viewer').then(viewerSpace=>{
+        session.requestHitTestSource({space:viewerSpace}).then(source=>{
+          arHitSource=source;
+        });
+      }).catch(()=>{});
+      arHitRequested=true;
+    }
+    if(arHitSource&&!arPlaced){
+      const results=frame.getHitTestResults(arHitSource);
+      if(results.length>0){
+        const hit=results[0];
+        const pose=hit.getPose(refSpace);
+        reticle.visible=true;
+        reticle.matrix.fromArray(pose.transform.matrix);
+      }else{
+        reticle.visible=false;
+      }
+    }
+  }else{
+    controls.update();
+  }
   renderer.render(scene,camera);
 }
 
 window.addEventListener('resize',()=>{
-  camera.aspect=window.innerWidth/window.innerHeight;
-  camera.updateProjectionMatrix();
+  if(!renderer.xr.isPresenting){
+    camera.aspect=window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+  }
   renderer.setSize(window.innerWidth,window.innerHeight);
 });
 
 buildTruthTable();
 updateOutput();
 buildExp2TruthTable();
-animate();
-
-setTimeout(()=>{
-  const inst=document.getElementById('instructions');
-  if(inst)inst.style.opacity='0';
-},5000);
+renderer.setAnimationLoop(animate);
+initAR();
 </script>
 </body>
 </html>
